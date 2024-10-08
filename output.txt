@@ -1,0 +1,8 @@
+Testing custom malloc and free implementations...
+
+Heap State:
+Chunk 0: Address: 0x1048d0008, Size: 64, Status: Free
+
+Task 1 (malloc/free 1-byte object 120 times): 4 microseconds (avg over 50 runs)
+Task 2 (malloc 120 objects, then free them all): 1200 microseconds (avg over 50 runs)
+Task 3 (random malloc/free): 1093 microseconds (avg over 50 runs)
