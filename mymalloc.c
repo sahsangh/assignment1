@@ -4,7 +4,7 @@
 #include <string.h>
 #include "mymalloc.h"
 
-#define MEMLENGTH 64
+#define MEMLENGTH 4096
 
 static union
 {
