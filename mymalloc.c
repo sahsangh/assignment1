@@ -2,22 +2,25 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h> // For uint64_t
 #include "mymalloc.h"
 
 #define MEMLENGTH 4096
 
+// Global memory pool for allocation
 static union
 {
     char bytes[MEMLENGTH];
-    double not_used; // To ensure 8-byte alignment
+    double align; // Ensure 8-byte alignment
 } heap;
 
+// Typedef for chunk header
 typedef struct chunk_header
 {
-    size_t size;  // Total size of the chunk (including the header)
-    bool is_free; // Is the chunk free or allocated
+    uint64_t metadata; // 8 bytes: size in higher bits, is_free in the lowest bit
 } chunk_header;
 
+// Static variables for heap management
 static int heap_initialized = 0;
 static void *heap_start = NULL;
 
@@ -30,6 +33,34 @@ void *mymalloc(size_t size, char *file, int line);
 void myfree(void *ptr, char *file, int line);
 void print_heap();
 
+// Utility functions to handle metadata
+size_t get_size(chunk_header *chunk)
+{
+    return chunk->metadata & ~1ULL; // Mask out the lowest bit
+}
+
+void set_size(chunk_header *chunk, size_t size)
+{
+    chunk->metadata = (chunk->metadata & 1) | size; // Keep the is_free bit and set the new size
+}
+
+bool is_free(chunk_header *chunk)
+{
+    return chunk->metadata & 1; // Check if the lowest bit is 1 (free)
+}
+
+void set_free(chunk_header *chunk, bool free)
+{
+    if (free)
+    {
+        chunk->metadata |= 1; // Set the lowest bit to 1
+    }
+    else
+    {
+        chunk->metadata &= ~1ULL; // Set the lowest bit to 0
+    }
+}
+
 // Leak detection function that checks for unfreed memory at program exit
 void leak_detector()
 {
@@ -39,12 +70,12 @@ void leak_detector()
 
     while ((char *)current < heap.bytes + MEMLENGTH)
     {
-        if (!current->is_free)
-        {
+        if (!is_free(current))
+        { // Check if the chunk is allocated
             leaked_chunks++;
-            total_leaked += current->size;
+            total_leaked += get_size(current);
         }
-        current = (chunk_header *)((char *)current + current->size);
+        current = (chunk_header *)((char *)current + get_size(current));
     }
 
     if (leaked_chunks > 0)
@@ -52,43 +83,46 @@ void leak_detector()
         fprintf(stderr, "mymalloc: %zu bytes leaked in %zu objects.\n", total_leaked, leaked_chunks);
     }
 }
+
 // Initialize the heap on first allocation
 void init_heap()
 {
+
     heap_start = (void *)heap.bytes;
     chunk_header *initial_header = (chunk_header *)heap_start;
-    initial_header->size = MEMLENGTH;
-    initial_header->is_free = true;
-    heap_initialized = 1;
+    initial_header->metadata = MEMLENGTH | 1; // Set size to MEMLENGTH and mark as free (lowest bit = 1)
     print_heap();
+    heap_initialized = 1;
     atexit(print_heap);
     atexit(leak_detector); // Register leak detector to run at program exit
 }
 
+// Find the first free chunk large enough to hold the requested size
 chunk_header *find_free_chunk(size_t size)
 {
     chunk_header *ptr = (chunk_header *)heap_start;
     while ((char *)ptr < heap.bytes + MEMLENGTH)
     {
-        if (ptr->is_free && ptr->size >= size)
+        if (is_free(ptr) && get_size(ptr) >= size)
         {
             return ptr;
         }
-        ptr = (chunk_header *)((char *)ptr + ptr->size);
+        ptr = (chunk_header *)((char *)ptr + get_size(ptr));
     }
     return NULL;
 }
 
+// Split a large chunk into two smaller chunks
 void split_chunk(chunk_header *chunk, size_t size)
 {
-    size_t remaining_size = chunk->size - size;
+    size_t remaining_size = get_size(chunk) - size;
     if (remaining_size >= sizeof(chunk_header) + 8)
     {
         chunk_header *new_chunk = (chunk_header *)((char *)chunk + size);
-        new_chunk->size = remaining_size;
-        new_chunk->is_free = true;
+        set_size(new_chunk, remaining_size);
+        set_free(new_chunk, true);
 
-        chunk->size = size;
+        set_size(chunk, size);
     }
 }
 
@@ -109,11 +143,10 @@ void *mymalloc(size_t size, char *file, int line)
     }
 
     // Round up the requested size to the nearest multiple of 8 (alignment)
-    size_t total_size = (size + 7) & ~7;
-    if (total_size < 16)
-    {
-        total_size = 16;
-    }
+    size_t payload_size = (size + 7) & ~7;
+
+    // Add header size to the total size
+    size_t total_size = payload_size + sizeof(chunk_header);
 
     // Find a free chunk that can accommodate the total size
     chunk_header *free_chunk = find_free_chunk(total_size);
@@ -124,34 +157,16 @@ void *mymalloc(size_t size, char *file, int line)
     }
 
     // If the chunk is larger than the requested size, split it
-    if (free_chunk->size > total_size)
+    if (get_size(free_chunk) > total_size)
     {
         split_chunk(free_chunk, total_size);
     }
 
     // Mark the chunk as allocated
-    free_chunk->is_free = false;
-    print_heap();
-    //    Return a pointer to the payload (skip over the header)
-    return (void *)((char *)free_chunk + sizeof(chunk_header));
-}
+    set_free(free_chunk, false);
 
-// Coalesce adjacent free chunks to avoid fragmentation
-void coalesce()
-{
-    chunk_header *current = (chunk_header *)heap_start;
-    while ((char *)current < heap.bytes + MEMLENGTH)
-    {
-        chunk_header *next = (chunk_header *)((char *)current + current->size);
-        if ((char *)next < heap.bytes + MEMLENGTH && current->is_free && next->is_free)
-        {
-            current->size += next->size; // Merge adjacent free chunks
-        }
-        else
-        {
-            current = next; // Move to the next chunk
-        }
-    }
+    // Return a pointer to the payload (skip over the header)
+    return (void *)((char *)free_chunk + sizeof(chunk_header));
 }
 
 // Free memory and coalesce adjacent free chunks
@@ -175,19 +190,38 @@ void myfree(void *ptr, char *file, int line)
     chunk_header *chunk = (chunk_header *)((char *)ptr - sizeof(chunk_header));
 
     // Detect double free
-    if (chunk->is_free)
+    if (is_free(chunk))
     {
         fprintf(stderr, "free: Double free detected (%s:%d)\n", file, line);
         exit(2);
     }
 
     // Mark the chunk as free
-    chunk->is_free = true;
+    set_free(chunk, true);
 
     // Coalesce adjacent free chunks
     coalesce();
 }
 
+// Coalesce adjacent free chunks to avoid fragmentation
+void coalesce()
+{
+    chunk_header *current = (chunk_header *)heap_start;
+    while ((char *)current < heap.bytes + MEMLENGTH)
+    {
+        chunk_header *next = (chunk_header *)((char *)current + get_size(current));
+        if ((char *)next < heap.bytes + MEMLENGTH && is_free(current) && is_free(next))
+        {
+            set_size(current, get_size(current) + get_size(next)); // Merge adjacent free chunks
+        }
+        else
+        {
+            current = next; // Move to the next chunk
+        }
+    }
+}
+
+// Print the current state of the heap
 void print_heap()
 {
     chunk_header *current = (chunk_header *)heap_start;
@@ -196,9 +230,13 @@ void print_heap()
     printf("\nHeap State:\n");
     while ((char *)current < heap.bytes + MEMLENGTH)
     {
-        printf("Chunk %d: Address: %p, Size: %zu, Status: %s\n", chunk_number, (void *)current, current->size, current->is_free ? "Free" : "Allocated");
-        current = (chunk_header *)((char *)current + current->size);
+        printf("Chunk %d: Address: %p, Size: %zu, Status: %s\n", chunk_number, (void *)current, get_size(current), is_free(current) ? "Free" : "Allocated");
+        current = (chunk_header *)((char *)current + get_size(current));
         chunk_number++;
     }
     printf("\n");
 }
+
+// Macros to replace malloc and free with our custom functions
+#define malloc(s) mymalloc(s, __FILE__, __LINE__)
+#define free(p) myfree(p, __FILE__, __LINE__)
