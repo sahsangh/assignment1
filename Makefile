@@ -1,31 +1,17 @@
-# Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CFLAGS = -g -Wall
 
-# Executables
-TARGET = memgrind
+all: memgrind memtest
 
-# Source files
-SRC = memgrind.c mymalloc.c
+mymalloc: mymalloc.c
+	$(CC) $(CFLAGS) -o mm mymalloc.c
 
-# Object files
-OBJ = memgrind.o mymalloc.o
-
-# Default target to build all
-all: $(TARGET)
-
-# Rule to compile memgrind
-$(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJ)
-
-# Compile memgrind.c
-memgrind.o: memgrind.c mymalloc.h
-	$(CC) $(CFLAGS) -c memgrind.c
-
-# Compile mymalloc.c
-mymalloc.o: mymalloc.c mymalloc.h
+memgrind: mymalloc.c memgrind.c
 	$(CC) $(CFLAGS) -c mymalloc.c
+	$(CC) $(CFLAGS) -o memgrind memgrind.c mymalloc.o
 
-# Clean rule to remove compiled files
+memtest: mymalloc.c memtest.c
+	$(CC) $(CFLAGS) -c mymalloc.c
+	$(CC) $(CFLAGS) -o memtest memtest.c mymalloc.o
 clean:
-	rm -f $(TARGET) *.o
+	rm -f mymalloc.o memgrind memtest
