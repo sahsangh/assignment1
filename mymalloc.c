@@ -7,24 +7,20 @@
 
 #define MEMLENGTH 4096
 
-// Global memory pool for allocation
 static union
 {
     char bytes[MEMLENGTH];
-    double align; // Ensure 8-byte alignment
+    double align;
 } heap;
 
-// Typedef for chunk header
 typedef struct chunk_header
 {
     uint64_t metadata; // 8 bytes: size in higher bits, is_free in the lowest bit
 } chunk_header;
 
-// Static variables for heap management
 static int heap_initialized = 0;
 static void *heap_start = NULL;
 
-// Function prototypes
 void init_heap();
 chunk_header *find_free_chunk(size_t size);
 void split_chunk(chunk_header *chunk, size_t size);
@@ -33,10 +29,10 @@ void *mymalloc(size_t size, char *file, int line);
 void myfree(void *ptr, char *file, int line);
 void print_heap();
 
-// Utility functions to handle metadata
+// Get size from upper bits
 size_t get_size(chunk_header *chunk)
 {
-    return chunk->metadata & ~1ULL; // Mask out the lowest bit
+    return chunk->metadata & ~1ULL;
 }
 
 void set_size(chunk_header *chunk, size_t size)
@@ -71,9 +67,9 @@ void leak_detector()
     while ((char *)current < heap.bytes + MEMLENGTH)
     {
         if (!is_free(current))
-        { // Check if the chunk is allocated
+        {
             leaked_chunks++;
-            total_leaked += get_size(current);
+            total_leaked += get_size(current) - sizeof(chunk_header);
         }
         current = (chunk_header *)((char *)current + get_size(current));
     }
@@ -90,10 +86,10 @@ void init_heap()
 
     heap_start = (void *)heap.bytes;
     chunk_header *initial_header = (chunk_header *)heap_start;
-    initial_header->metadata = MEMLENGTH | 1; // Set size to MEMLENGTH and mark as free (lowest bit = 1)
-    print_heap();
+    initial_header->metadata = MEMLENGTH | 1;
+    // print_heap();
     heap_initialized = 1;
-    atexit(print_heap);
+    // atexit(print_heap);
     atexit(leak_detector); // Register leak detector to run at program exit
 }
 
@@ -129,14 +125,12 @@ void split_chunk(chunk_header *chunk, size_t size)
 // Memory allocation function
 void *mymalloc(size_t size, char *file, int line)
 {
-    // Handle size == 0 case
     if (size == 0)
     {
         fprintf(stderr, "malloc: Requested size is 0 (%s:%d)\n", file, line);
         return NULL;
     }
 
-    // Initialize the heap if not already initialized
     if (!heap_initialized)
     {
         init_heap();
@@ -156,16 +150,16 @@ void *mymalloc(size_t size, char *file, int line)
         return NULL;
     }
 
-    // If the chunk is larger than the requested size, split it
+    // Split Chunk if it is larger than the requested size
     if (get_size(free_chunk) > total_size)
     {
         split_chunk(free_chunk, total_size);
     }
 
-    // Mark the chunk as allocated
+    // Mark chunk as allocated
     set_free(free_chunk, false);
 
-    // Return a pointer to the payload (skip over the header)
+    // Return a pointer to the payload (NOT HEADER)
     return (void *)((char *)free_chunk + sizeof(chunk_header));
 }
 
@@ -238,5 +232,5 @@ void print_heap()
 }
 
 // Macros to replace malloc and free with our custom functions
-#define malloc(s) mymalloc(s, __FILE__, __LINE__)
-#define free(p) myfree(p, __FILE__, __LINE__)
+// #define malloc(s) mymalloc(s, __FILE__, __LINE__)
+// #define free(p) myfree(p, __FILE__, __LINE__)
