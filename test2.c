@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <string.h>
 
 // Compile with -DREALMALLOC to use the real malloc() instead of mymalloc()

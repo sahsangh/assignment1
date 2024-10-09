@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdint.h>
 
 #ifndef REALMALLOC
 #include "mymalloc.h"
