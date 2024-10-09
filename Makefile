@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -g -Wall
 
-all: memgrind memtest test1 test2 test3 test4 test5
+all: memgrind memtest test1 test2 test3 test4 test5 coalesce_test
 
 mymalloc: mymalloc.c
 	$(CC) $(CFLAGS) -o mm mymalloc.c
@@ -36,5 +36,9 @@ test4: mymalloc.c test4.c
 test5: mymalloc.c test5.c
 	$(CC) $(CFLAGS) -c mymalloc.c
 	$(CC) $(CFLAGS) -o test5 test5.c mymalloc.o
+
+coalesce_test: mymalloc.c coalesce_test.c
+	$(CC) $(CFLAGS) -c mymalloc.c
+	$(CC) $(CFLAGS) -o coalesce_test coalesce_test.c mymalloc.o
 clean:
-	rm -f mymalloc.o memgrind memtest test1 test2 test3 test4 test5
+	rm -f mymalloc.o memgrind memtest test1 test2 test3 test4 test5 coalesce_test
