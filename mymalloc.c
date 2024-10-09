@@ -87,9 +87,9 @@ void init_heap()
     heap_start = (void *)heap.bytes;
     chunk_header *initial_header = (chunk_header *)heap_start;
     initial_header->metadata = MEMLENGTH | 1;
-    print_heap();
     heap_initialized = 1;
-    // atexit(print_heap);
+    // print_heap();
+    //  atexit(print_heap);
     atexit(leak_detector); // Register leak detector to run at program exit
 }
 
@@ -159,7 +159,7 @@ void *mymalloc(size_t size, char *file, int line)
     // Mark chunk as allocated
     set_free(free_chunk, false);
     // print_heap();
-    //  Return a pointer to the payload (NOT HEADER)
+    //   Return a pointer to the payload (NOT HEADER)
     return (void *)((char *)free_chunk + sizeof(chunk_header));
 }
 

@@ -16,7 +16,7 @@
 #define MEMSIZE 4096
 #define HEADERSIZE 8
 #define OBJECTS 64
-#define OBJSIZE ((MEMSIZE / OBJECTS - HEADERSIZE) / 8 * 8 + 8) // Ensure OBJSIZE is a multiple of 8
+#define OBJSIZE ((MEMSIZE / OBJECTS - HEADERSIZE) / 8 * 8) // Ensure OBJSIZE is a multiple of 8
 
 int main(int argc, char **argv)
 {
