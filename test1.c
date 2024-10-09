@@ -42,6 +42,7 @@ int main()
     free(ptr3);
 
     // FREE NON MALLOC
+    // TO TEST THIS COMMENT PREVIOUS TEST OF DOUBLE FREE TO AVOID EXITING
     int x;
     free(&x);
 }
