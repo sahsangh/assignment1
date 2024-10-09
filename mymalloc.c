@@ -5,7 +5,7 @@
 #include <stdint.h> // For uint64_t
 #include "mymalloc.h"
 
-#define MEMLENGTH 4096
+#define MEMLENGTH 104
 
 static union
 {
@@ -87,9 +87,9 @@ void init_heap()
     heap_start = (void *)heap.bytes;
     chunk_header *initial_header = (chunk_header *)heap_start;
     initial_header->metadata = MEMLENGTH | 1;
-    // print_heap();
+    print_heap();
     heap_initialized = 1;
-    // atexit(print_heap);
+    atexit(print_heap);
     atexit(leak_detector); // Register leak detector to run at program exit
 }
 
@@ -125,6 +125,7 @@ void split_chunk(chunk_header *chunk, size_t size)
 // Memory allocation function
 void *mymalloc(size_t size, char *file, int line)
 {
+
     if (size == 0)
     {
         fprintf(stderr, "malloc: Requested size is 0 (%s:%d)\n", file, line);
@@ -141,7 +142,6 @@ void *mymalloc(size_t size, char *file, int line)
 
     // Add header size to the total size
     size_t total_size = payload_size + sizeof(chunk_header);
-
     // Find a free chunk that can accommodate the total size
     chunk_header *free_chunk = find_free_chunk(total_size);
     if (!free_chunk)
@@ -158,7 +158,7 @@ void *mymalloc(size_t size, char *file, int line)
 
     // Mark chunk as allocated
     set_free(free_chunk, false);
-
+    print_heap();
     // Return a pointer to the payload (NOT HEADER)
     return (void *)((char *)free_chunk + sizeof(chunk_header));
 }
@@ -195,6 +195,7 @@ void myfree(void *ptr, char *file, int line)
 
     // Coalesce adjacent free chunks
     coalesce();
+    print_heap();
 }
 
 // Coalesce adjacent free chunks to avoid fragmentation

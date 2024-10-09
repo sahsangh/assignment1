@@ -53,6 +53,52 @@ void task3()
     }
 }
 
+// Task 4: Allocate 50 64-byte objects and do not free (memory leak test)
+void task4()
+{
+    void *pointers[50];
+    for (int i = 0; i < 50; i++)
+    {
+        pointers[i] = malloc(64); // Allocate 64-byte objects
+        if (pointers[i] == NULL)
+        {
+            printf("Unable to allocate object %d\n", i);
+            exit(1);
+        }
+    }
+    // Do not free the allocated memory (for leak testing)
+}
+
+// Task 5: Allocate and free 60 1-byte objects, free half, and reallocate
+void task5()
+{
+    void *pointers[60];
+
+    // Allocate 60 1-byte objects
+    for (int i = 0; i < 60; i++)
+    {
+        pointers[i] = malloc(1);
+    }
+
+    // Free half of the objects
+    for (int i = 0; i < 30; i++)
+    {
+        free(pointers[i]);
+    }
+
+    // Reallocate 30 objects
+    for (int i = 0; i < 30; i++)
+    {
+        pointers[i] = malloc(1);
+    }
+
+    // Free remaining objects
+    for (int i = 30; i < 60; i++)
+    {
+        free(pointers[i]);
+    }
+}
+
 // Time a specific task and print the result
 void time_task(void (*task)(), const char *task_name)
 {
@@ -62,6 +108,7 @@ void time_task(void (*task)(), const char *task_name)
     for (int i = 0; i < RUNS; i++)
     {
         task(); // Run the task
+        reset_heap();
     }
 
     gettimeofday(&end, NULL); // End time
@@ -82,5 +129,7 @@ int main()
     time_task(task2, "Task 2 (malloc 120 objects, then free them all)");
     time_task(task3, "Task 3 (random malloc/free)");
 
+    time_task(task4, "Task 4 (malloc 64-byte objects, no free)");
+    time_task(task5, "Task 5 (allocate 60, free half, reallocate)");
     return 0;
 }
