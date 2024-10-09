@@ -11,7 +11,7 @@ int main()
     if (ptr == NULL)
     {
         printf("Failed to allocate memory!\n");
-        return 1; // Exit if allocation failed
+        return 1;
     }
     else
     {
@@ -25,7 +25,7 @@ int main()
     if (ptr2 == NULL)
     {
         printf("Failed to allocate memory!\n");
-        return 1; // Exit if allocation failed
+        return 1;
     }
 
     // Write some data to the newly allocated memory

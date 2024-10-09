@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <stdint.h> // For uint64_t
+#include <stdint.h>
 #include "mymalloc.h"
 
 #define MEMLENGTH 4096
@@ -57,7 +57,7 @@ void set_free(chunk_header *chunk, bool free)
     }
 }
 
-// Leak detection function that checks for unfreed memory at program exit
+// Funciton to detect leaks
 void leak_detector()
 {
     chunk_header *current = (chunk_header *)heap_start;
@@ -90,10 +90,10 @@ void init_heap()
     heap_initialized = 1;
     // print_heap();
     // atexit(print_heap);
-    atexit(leak_detector); // Register leak detector to run at program exit
+    atexit(leak_detector);
 }
 
-// Find the first free chunk large enough to hold the requested size
+// Find the first free chunk that's big enough
 chunk_header *find_free_chunk(size_t size)
 {
     chunk_header *ptr = (chunk_header *)heap_start;
@@ -108,7 +108,7 @@ chunk_header *find_free_chunk(size_t size)
     return NULL;
 }
 
-// Split a large chunk into two smaller chunks
+// Split a chunk into two smaller chunks
 void split_chunk(chunk_header *chunk, size_t size)
 {
     size_t remaining_size = get_size(chunk) - size;
@@ -122,7 +122,7 @@ void split_chunk(chunk_header *chunk, size_t size)
     }
 }
 
-// Memory allocation function
+// MALLOC function
 void *mymalloc(size_t size, char *file, int line)
 {
 
@@ -137,10 +137,10 @@ void *mymalloc(size_t size, char *file, int line)
         init_heap();
     }
 
-    // Round up the requested size to the nearest multiple of 8 (alignment)
+    // ROUND UP to Multiple of 8
     size_t payload_size = (size + 7) & ~7;
 
-    // Add header size to the total size
+    // ADD Header to size
     size_t total_size = payload_size + sizeof(chunk_header);
     // Find a free chunk that can accommodate the total size
     chunk_header *free_chunk = find_free_chunk(total_size);
@@ -237,7 +237,3 @@ void print_heap()
     }
     printf("\n");
 }
-
-// Macros to replace malloc and free with our custom functions
-// #define malloc(s) mymalloc(s, __FILE__, __LINE__)
-// #define free(p) myfree(p, __FILE__, __LINE__)
