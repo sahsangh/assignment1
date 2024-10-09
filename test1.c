@@ -1,4 +1,4 @@
-// MAKE SURE EVERYTHING IS MULTIPLE OF 8
+// TESTS BASIC MALLOC AND FREE AND MALLOC(0) and MALLOC(4096) AND DOUBLE FREE AND FREEING NON MALLOC ADDRESS
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,15 +17,14 @@
 #define MEMSIZE 4096
 #define HEADERSIZE 8
 #define OBJECTS 64
-#define OBJSIZE 53 // Ensure OBJSIZE is a multiple of 8
+#define OBJSIZE (MEMSIZE / OBJECTS - HEADERSIZE)
 
-int main(int argc, char **argv)
+int main()
 {
+    // BASIC MALLOC FREE TEST
     char *obj[OBJECTS];
-    int i, errors = 0;
 
-    // Test case: 8-byte alignment verification
-    for (i = 0; i < OBJECTS; i++)
+    for (int i = 0; i < OBJECTS; i++)
     {
         obj[i] = malloc(OBJSIZE);
         if (obj[i] == NULL)
@@ -33,13 +32,18 @@ int main(int argc, char **argv)
             printf("Unable to allocate object %d\n", i);
             exit(1);
         }
-
-        // Check that the returned pointer is aligned to a multiple of 8
-        if ((uintptr_t)obj[i] % 8 != 0)
-        {
-            printf("Error: Allocated object %d is not aligned to 8 bytes\n", i);
-            errors++;
-        }
+        free(obj[i]);
     }
-    printf("\n\n\nErrors:%d\n\n\n", errors);
+
+    char *ptr = malloc(0);
+    char *ptr2 = malloc(4097);
+
+    // DOUBLE FREE
+    char *ptr3 = malloc(4);
+    free(ptr3);
+    free(ptr3);
+
+    // FREE NON MALLOC
+    int x;
+    free(&x);
 }

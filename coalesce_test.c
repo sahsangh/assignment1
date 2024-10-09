@@ -4,39 +4,36 @@
 int main()
 {
     // Allocate two chunks of memory
-    char *ptr1 = malloc(16);
+    char *ptr1 = malloc(40);
     if (ptr1 == NULL)
     {
         printf("Failed to allocate Chunk 1!\n");
         return 1;
     }
 
-    char *ptr2 = malloc(16);
+    char *ptr2 = malloc(40);
     if (ptr2 == NULL)
     {
         printf("Failed to allocate Chunk 2!\n");
         return 1;
     }
-
-    char *ptr3 = malloc(16);
+    free(ptr1);
+    free(ptr2);
+    char *ptr3 = malloc(72);
     if (ptr3 == NULL)
     {
         printf("Failed to allocate Chunk 2!\n");
         return 1;
     }
 
-    printf("Freeing Chunk 2...\n");
-    free(ptr2);
-
-    char *ptr4 = malloc(32);
-    if (ptr4 == NULL)
+    if (ptr1 == ptr3)
     {
-        printf("Failed to allocate Chunk 2!\n");
-        return 1;
+        printf("SUCCESS");
     }
-
-    // Free the newly allocated chunk
-    printf("Freeing the 64-byte block...\n");
+    else
+    {
+        printf("FAIL");
+    }
     free(ptr3);
 
     return 0;

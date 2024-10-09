@@ -89,7 +89,7 @@ void init_heap()
     initial_header->metadata = MEMLENGTH | 1;
     heap_initialized = 1;
     // print_heap();
-    //  atexit(print_heap);
+    // atexit(print_heap);
     atexit(leak_detector); // Register leak detector to run at program exit
 }
 
@@ -159,7 +159,7 @@ void *mymalloc(size_t size, char *file, int line)
     // Mark chunk as allocated
     set_free(free_chunk, false);
     // print_heap();
-    //   Return a pointer to the payload (NOT HEADER)
+    //    Return a pointer to the payload (NOT HEADER)
     return (void *)((char *)free_chunk + sizeof(chunk_header));
 }
 
@@ -183,6 +183,12 @@ void myfree(void *ptr, char *file, int line)
     // Calculate the corresponding chunk header
     chunk_header *chunk = (chunk_header *)((char *)ptr - sizeof(chunk_header));
 
+    // Checks if pointer is at start of chunk
+    if ((char *)chunk < heap.bytes || ((char *)chunk - (char *)heap.bytes) % sizeof(chunk_header) != 0)
+    {
+        fprintf(stderr, "free: Pointer is not at the start of a valid chunk (%s:%d)\n", file, line);
+        exit(2);
+    }
     // Detect double free
     if (is_free(chunk))
     {
